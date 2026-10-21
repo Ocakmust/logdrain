@@ -1,4 +1,4 @@
-name: Build Linux binary
+name: Build logdrain binaries
 
 on:
   workflow_dispatch:
@@ -15,16 +15,36 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-gnu
+
+      - name: Install Windows cross compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64
 
       - name: Build Linux binary
         run: |
-          mkdir -p dist
+          set -eux
           cargo build --release -p logdrain-cli --bin logdrain
+          ls -la target/release
+          mkdir -p dist
           cp target/release/logdrain dist/logdrain-linux-amd64
           chmod +x dist/logdrain-linux-amd64
 
-      - name: Upload artifact
+      - name: Build Windows .exe
+        run: |
+          set -eux
+          cargo build --release --target x86_64-pc-windows-gnu -p logdrain-cli --bin logdrain
+          ls -la target/x86_64-pc-windows-gnu/release
+          cp target/x86_64-pc-windows-gnu/release/logdrain.exe dist/logdrain.exe
+
+      - name: Show dist contents
+        run: |
+          ls -la dist
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-binary
+          name: logdrain-binaries
           path: dist/*
